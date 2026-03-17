@@ -116,7 +116,7 @@ proxy_cache_path /tmp/cache keys_zone=proxy_cache_zone:10m loader_threshold=300 
 #
 server {
 	listen 443 http2 ssl;
-	server_name ~^[^.]+-decoupling\.{{ domain | replace('.', '\.') }}$;
+	server_name fe-decoupling.mazeed.cloud;
 
 	ssl_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/*.{{ domain }}/privkey.pem;
@@ -159,7 +159,6 @@ server {
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $remote_addr;
 		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Mazeed-Site-Name https://$host;
 		proxy_set_header Connection "";
 
 		more_set_headers "X-Proxy-Upstream: $upstream_server_hash";
@@ -178,7 +177,6 @@ server {
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $remote_addr;
 		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Mazeed-Site-Name https://$host;
 		proxy_set_header Connection "upgrade";
 
 		more_set_headers "X-Proxy-Upstream: $socket_upstream_hash";
@@ -197,7 +195,6 @@ server {
 		proxy_set_header X-Forwarded-Proto $scheme;
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Mazeed-Site-Name https://$host;
 		proxy_set_header Connection "";
 
 		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
