@@ -54,6 +54,18 @@ upstream amplify_host {
 	keepalive 100;
 }
 
+{% if frontend_tenant_mode %}
+upstream frontend_app {
+	server {{ frontend_upstream }};
+	keepalive 100;
+}
+
+upstream server_agent {
+	server {{ server_agent_upstream }};
+	keepalive 100;
+}
+{% endif %}
+
 map $actual_host $upstream_server_hash {
 {% for upstream in upstreams.values() -%}
 	{% for site in upstream["sites"] %}
@@ -145,7 +157,6 @@ server {
 	more_set_headers "X-Content-Type-Options: nosniff";
 	more_set_headers "Referrer-Policy: no-referrer-when-downgrade";
 	more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
-	more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'";
 
 	location /api/ {
 		proxy_http_version 1.1;
@@ -252,13 +263,49 @@ server {
 	more_set_headers "X-Content-Type-Options: nosniff";
 	more_set_headers "Referrer-Policy: no-referrer-when-downgrade";
 	more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
-
+	more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'self';";
+	
 	{% if host_options.redirect %}
 
 	location / {
 		return 301 https://{{ host_options.redirect }}$request_uri;
 	}
 
+	{% else %}
+	{% if frontend_tenant_mode %}
+	location /api/ {
+		proxy_http_version 1.1;
+		proxy_read_timeout 600;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header X-Tenant-Site $actual_host;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Tenant: $actual_host";
+		more_set_headers "X-Proxy-Upstream: http://server_agent";
+
+		proxy_pass http://server_agent;
+	}
+
+	location / {
+		proxy_http_version 1.1;
+		proxy_read_timeout 600;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header X-Tenant-Site $actual_host;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Tenant: $actual_host";
+		more_set_headers "X-Proxy-Upstream: http://frontend_app";
+
+		proxy_pass http://frontend_app;
+	}
 	{% else %}
 	location /assets/ {
 		proxy_http_version 1.1;
@@ -326,6 +373,7 @@ server {
 
 		proxy_pass $upstream_server_hash;
 	}
+	{% endif %}
 
 	proxy_intercept_errors on;
 	error_page 429 /exceeded.html;
