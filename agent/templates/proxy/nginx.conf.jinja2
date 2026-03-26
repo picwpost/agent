@@ -54,6 +54,11 @@ upstream amplify_host {
 	keepalive 100;
 }
 
+map fe-decoupling-frappe.mazeed.cloud $upstream_server_real_server { 
+	fe-decoupling-nextjs.mazeed.cloud http://710d2aa909a4d35b;
+}
+
+
 map $actual_host $upstream_server_hash {
 {% for upstream in upstreams.values() -%}
 	{% for site in upstream["sites"] %}
@@ -116,7 +121,7 @@ proxy_cache_path /tmp/cache keys_zone=proxy_cache_zone:10m loader_threshold=300 
 #
 server {
 	listen 443 http2 ssl;
-	server_name fe-decoupling.mazeed.cloud;
+	server_name fe-decoupling-nextjs.mazeed.cloud;
 
 	ssl_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/*.{{ domain }}/privkey.pem;
