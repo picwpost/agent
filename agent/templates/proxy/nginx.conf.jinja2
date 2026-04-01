@@ -283,7 +283,7 @@ server {
 	more_set_headers "X-Content-Type-Options: nosniff";
 	more_set_headers "Referrer-Policy: no-referrer-when-downgrade";
 	more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
-	more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'self';";
+	more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss: https://www.clarity.ms; object-src 'none'; base-uri 'self'; frame-ancestors 'self';";
 	
 	{% if host_options.redirect %}
 
@@ -358,7 +358,7 @@ server {
 		more_set_headers "Access-Control-Allow-Headers: $access_control_allow_headers";
 		more_set_headers "Access-Control-Allow-Credentials: $access_control_allow_credentials";
 		more_set_headers "Access-Control-Allow-Methods: $access_control_allow_methods";
-		more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'self';";
+			more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss: https://www.clarity.ms; object-src 'none'; base-uri 'self'; frame-ancestors 'self';";
 
 		proxy_pass $upstream_server_hash;
 	}
