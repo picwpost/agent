@@ -50,6 +50,16 @@ style-src-elem ... https://cdn.jsdelivr.net;
 
 `script-src-elem` and `style-src-elem` are included explicitly so browsers do not need to fall back to `script-src` and `style-src` when validating external `<script>` and `<link rel="stylesheet">` tags.
 
+## Frame Policy
+
+The CSP was also updated to include:
+
+```nginx
+frame-src 'self';
+```
+
+This keeps frame loading restricted to the same origin and makes the directive explicit instead of relying on fallback behavior from other CSP directives.
+
 ## Deployment Note
 
 Changing this template does not update live response headers by itself. The nginx config must be regenerated from `nginx.conf.jinja2`, deployed to the proxy host, and nginx must be reloaded.
