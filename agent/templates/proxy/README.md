@@ -52,13 +52,19 @@ style-src-elem ... https://cdn.jsdelivr.net;
 
 ## Frame Policy
 
-The CSP was also updated to include:
+The CSP was also updated to include explicit frame rules:
 
 ```nginx
-frame-src 'self';
+frame-src 'self' https://*.mazeed.cloud;
+frame-ancestors 'self' https://*.mazeed.cloud;
 ```
 
-This keeps frame loading restricted to the same origin and makes the directive explicit instead of relying on fallback behavior from other CSP directives.
+These directives serve different purposes:
+
+- `frame-src` controls which origins this page is allowed to embed in iframes.
+- `frame-ancestors` controls which origins are allowed to embed this page.
+
+Both are restricted to the same origin plus HTTPS subdomains under `mazeed.cloud`.
 
 ## Deployment Note
 
