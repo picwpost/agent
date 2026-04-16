@@ -87,8 +87,24 @@ map $host $actual_host {
 {%- endfor %}
 }
 
+map $host $actual_host {
+	prod-fe-decoupling-frappe.mazeed.cloud prod-fe-decoupling.mazeed.cloud;
+{% for host in hosts.values() -%}
+	{% for from, to in host.items() if from != 'redirect'%}
+	{% if from != 'codeserver' %}
+	{{ from }} {{ to }};
+	{% endif %}
+	{%- endfor %}
+{%- endfor %}
+}
+
 map $host $backend_host_header {
 	fe-decoupling-frappe.mazeed.cloud $actual_host;
+	default $host;
+}
+
+map $host $backend_host_header {
+	prod-fe-decoupling-frappe.mazeed.cloud $actual_host;
 	default $host;
 }
 
