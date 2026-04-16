@@ -77,7 +77,7 @@ map $actual_host $socket_upstream_hash {
 }
 
 map $host $actual_host {
-	fe-decoupling-nextjs.mazeed.cloud fe-decoupling-frappe.mazeed.cloud;
+	fe-decoupling-frappe.mazeed.cloud fe-decoupling-nextjs.mazeed.cloud;
 {% for host in hosts.values() -%}
 	{% for from, to in host.items() if from != 'redirect'%}
 	{% if from != 'codeserver' %}
@@ -99,7 +99,7 @@ map $host $actual_host {
 }
 
 map $host $backend_host_header {
-	fe-decoupling-nextjs.mazeed.cloud $actual_host;
+	fe-decoupling-frappe.mazeed.cloud $actual_host;
 	default $host;
 }
 
