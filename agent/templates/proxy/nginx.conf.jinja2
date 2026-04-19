@@ -92,24 +92,6 @@ map $host $backend_host_header {
 	default $host;
 }
 
-
-
-map $host $actual_host {
-	automation1111-frappe.mazeed.cloud automation1111.mazeed.cloud;
-{% for host in hosts.values() -%}
-	{% for from, to in host.items() if from != 'redirect'%}
-	{% if from != 'codeserver' %}
-	{{ from }} {{ to }};
-	{% endif %}
-	{%- endfor %}
-{%- endfor %}
-}
-
-map $host $backend_host_header {
-	automation1111-frappe.mazeed.cloud $actual_host;
-	default $host;
-}
-
 map $upstream_http_access_control_allow_origin $access_control_allow_origin {
 	default $upstream_http_access_control_allow_origin;
 	"" "https://$host";
