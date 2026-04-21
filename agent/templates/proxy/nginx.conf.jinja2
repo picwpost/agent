@@ -243,6 +243,31 @@ server {
     proxy_pass $upstream_server_hash;
 }
 
+
+
+location /fe_assets/ {
+		set $amplify_host devmazeedfe.mazeed.cloud;
+		proxy_http_version 1.1;
+
+		proxy_cache proxy_cache_zone;
+		proxy_cache_key $scheme$host$request_uri;
+		proxy_cache_valid 200 302 2m;
+		proxy_cache_valid 404 1m;
+		proxy_cache_bypass $http_secret_cache_purge;
+
+		proxy_set_header Host $amplify_host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Upstream: $amplify_host";
+		more_set_headers "X-Proxy-Cache: $amplify_host";
+
+		proxy_pass $amplify_host;
+	}
+
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
