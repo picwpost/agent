@@ -470,7 +470,7 @@ server {
 	{%- endif %}
 {%- endfor %}
 
-{% if ns.host.startswith("pentest") and not host_options.redirect %}
+{% if ns.host.startswith("test-") and not host_options.redirect %}
 server {
 	listen 443 http2 ssl{% if ns.host.strip("*.") == domain %} default_server{% endif %};
 	server_name {{ ns.host }};
