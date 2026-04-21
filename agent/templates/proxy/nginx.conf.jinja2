@@ -459,6 +459,152 @@ server {
 	}
 }
 
+server {
+	listen 443 http2 ssl;
+	server_name ~^test-[^.]+\.{{ domain | replace(".", "\\.") }}$;
+
+	ssl_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/fullchain.pem;
+	ssl_certificate_key {{ nginx_directory }}/hosts/*.{{ domain }}/privkey.pem;
+	ssl_trusted_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/chain.pem;
+
+	ssl_session_timeout 1d;
+	ssl_session_cache shared:MozSSL:10m; # about 40000 sessions
+	ssl_session_tickets off;
+
+	ssl_protocols {{ tls_protocols or 'TLSv1.2 TLSv1.3' }};
+	ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+	ssl_prefer_server_ciphers off;
+
+	ssl_stapling on;
+	ssl_stapling_verify on;
+
+	resolver 8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1 208.67.222.222 208.67.220.220 valid=600s;
+	resolver_timeout 30s;
+
+	client_max_body_size 250M;
+	client_body_buffer_size 16K;
+	client_header_buffer_size 1k;
+
+	more_set_headers "X-Frame-Options: SAMEORIGIN";
+	more_set_headers "X-XSS-Protection: 1; mode=block";
+	more_set_headers "X-Content-Type-Options: nosniff";
+	more_set_headers "Referrer-Policy: no-referrer-when-downgrade";
+	more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
+	more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.clarity.ms https://scripts.clarity.ms https://cdn.jsdelivr.net; script-src-elem 'self' 'unsafe-inline' https://www.clarity.ms https://scripts.clarity.ms https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss: https://*.clarity.ms; frame-src 'self' https://*.mazeed.cloud; object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://*.mazeed.cloud;";
+
+	location /api/ {
+		proxy_http_version 1.1;
+		proxy_read_timeout 600;
+		proxy_buffering off;
+		proxy_buffer_size 8k;
+		proxy_buffers 8 8k;
+		proxy_busy_buffers_size 8k;
+
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Upstream: $upstream_server_hash";
+		more_set_headers "Access-Control-Allow-Origin: $access_control_allow_origin";
+		more_set_headers "Access-Control-Allow-Headers: $access_control_allow_headers";
+		more_set_headers "Access-Control-Allow-Credentials: $access_control_allow_credentials";
+		more_set_headers "Access-Control-Allow-Methods: $access_control_allow_methods";
+
+		proxy_pass $upstream_server_hash;
+	}
+
+	location /files {
+		proxy_http_version 1.1;
+		proxy_read_timeout 600;
+		proxy_buffering off;
+		proxy_buffer_size 8k;
+		proxy_buffers 8 8k;
+		proxy_busy_buffers_size 8k;
+
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Upstream: $upstream_server_hash";
+		more_set_headers "Access-Control-Allow-Origin: $access_control_allow_origin";
+		more_set_headers "Access-Control-Allow-Headers: $access_control_allow_headers";
+		more_set_headers "Access-Control-Allow-Credentials: $access_control_allow_credentials";
+		more_set_headers "Access-Control-Allow-Methods: $access_control_allow_methods";
+
+		rewrite ^/frappe-api/(.*)$ /$1 break;
+		proxy_pass $upstream_server_hash;
+	}
+
+	location /frappe-api/ {
+		proxy_http_version 1.1;
+		proxy_read_timeout 600;
+		proxy_buffering off;
+		proxy_buffer_size 8k;
+		proxy_buffers 8 8k;
+		proxy_busy_buffers_size 8k;
+
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Upstream: $upstream_server_hash";
+		more_set_headers "Access-Control-Allow-Origin: $access_control_allow_origin";
+		more_set_headers "Access-Control-Allow-Headers: $access_control_allow_headers";
+		more_set_headers "Access-Control-Allow-Credentials: $access_control_allow_credentials";
+		more_set_headers "Access-Control-Allow-Methods: $access_control_allow_methods";
+
+		rewrite ^/frappe-api/(.*)$ /$1 break;
+		proxy_pass $upstream_server_hash;
+	}
+
+	location /socket.io {
+		proxy_http_version 1.1;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header Connection "upgrade";
+
+		more_set_headers "X-Proxy-Upstream: $socket_upstream_hash";
+
+		proxy_pass $socket_upstream_hash;
+	}
+
+	location / {
+		set $amplify_host devmazeedfe.mazeed.cloud;
+
+		proxy_http_version 1.1;
+		proxy_read_timeout 600;
+		proxy_ssl_server_name on;
+		proxy_set_header Host $amplify_host;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
+
+		proxy_pass https://$amplify_host;
+	}
+
+	proxy_intercept_errors on;
+	error_page 429 /exceeded.html;
+	location /exceeded.html {
+		root {{ error_pages_directory }};
+		internal;
+	}
+}
+
 {% for host, host_options in hosts.items() %}
 
 {% set ns = namespace(host=host, cert_host=host) %}
@@ -473,7 +619,11 @@ server {
 {% if ns.host.startswith("test-") and not host_options.redirect %}
 server {
 	listen 443 http2 ssl{% if ns.host.strip("*.") == domain %} default_server{% endif %};
+	{% if ns.host == "*." + domain %}
+	server_name ~^(?!test-)[^.]+\.{{ domain | replace(".", "\\.") }}$;
+	{% else %}
 	server_name {{ ns.host }};
+	{% endif %}
 
 	ssl_certificate {{ nginx_directory }}/hosts/{{ ns.cert_host }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/{{ ns.cert_host }}/privkey.pem;
@@ -619,7 +769,11 @@ server {
 {% else %}
 server {
 	listen 443 http2 ssl{% if ns.host.strip("*.") == domain %} default_server{% endif %};
+	{% if ns.host == "*." + domain %}
+	server_name ~^(?!test-)[^.]+\.{{ domain | replace(".", "\\.") }}$;
+	{% else %}
 	server_name {{ ns.host }};
+	{% endif %}
 
 	ssl_certificate {{ nginx_directory }}/hosts/{{ ns.cert_host }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/{{ ns.cert_host }}/privkey.pem;
