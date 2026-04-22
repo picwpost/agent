@@ -153,7 +153,7 @@ server {
 	more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
 	more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.clarity.ms https://scripts.clarity.ms https://cdn.jsdelivr.net; script-src-elem 'self' 'unsafe-inline' https://www.clarity.ms https://scripts.clarity.ms https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://flagcdn.com; font-src 'self' data:; connect-src 'self' ws: wss: https://*.clarity.ms; frame-src 'self' https://*.mazeed.cloud; object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://*.mazeed.cloud;";
 
-	location ~ ^/(frappe-api/)?(api|assets|files|private/files)/ {
+	location ~ ^/(frappe-api/.*|(api|assets|files|private/files)/) {
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
 		proxy_buffering off;
@@ -279,7 +279,7 @@ server {
 	more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
 	more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.clarity.ms https://scripts.clarity.ms https://cdn.jsdelivr.net; script-src-elem 'self' 'unsafe-inline' https://www.clarity.ms https://scripts.clarity.ms https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://flagcdn.com; font-src 'self' data:; connect-src 'self' ws: wss: https://*.clarity.ms; frame-src 'self' https://*.mazeed.cloud; object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://*.mazeed.cloud;";
 
-	location ~ ^/(frappe-api/)?(api|assets|files|private/files)/ {
+	location ~ ^/(frappe-api/.*|(api|assets|files|private/files)/) {
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
 		proxy_buffering off;
