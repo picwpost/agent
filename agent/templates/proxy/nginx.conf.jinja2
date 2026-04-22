@@ -295,6 +295,88 @@ server {
 	}
 
 	{% else %}
+	{% if ns.host == "*." + domain %}
+	location ~ ^/(frappe-api/.*|(api|assets|files|private/files)/) {
+		proxy_http_version 1.1;
+		proxy_read_timeout 600;
+		proxy_buffering off;
+		proxy_buffer_size 8k;
+		proxy_buffers 8 8k;
+		proxy_busy_buffers_size 8k;
+
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Upstream: $upstream_server_hash";
+		more_set_headers "Access-Control-Allow-Origin: $access_control_allow_origin";
+		more_set_headers "Access-Control-Allow-Headers: $access_control_allow_headers";
+		more_set_headers "Access-Control-Allow-Credentials: $access_control_allow_credentials";
+		more_set_headers "Access-Control-Allow-Methods: $access_control_allow_methods";
+
+		rewrite ^/frappe-api/(.*)$ /$1 break;
+		proxy_pass $upstream_server_hash;
+	}
+
+	location /fe_assets/ {
+		set $amplify_host devmazeedfe.mazeed.cloud;
+		proxy_http_version 1.1;
+		proxy_ssl_server_name on;
+
+		proxy_cache proxy_cache_zone;
+		proxy_cache_key $scheme$host$request_uri;
+		proxy_cache_valid 200 302 2m;
+		proxy_cache_valid 404 1m;
+		proxy_cache_bypass $http_secret_cache_purge;
+
+		proxy_set_header Host $amplify_host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
+		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
+
+		proxy_pass https://$amplify_host;
+	}
+
+	location /socket.io {
+		proxy_http_version 1.1;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header Connection "upgrade";
+
+		more_set_headers "X-Proxy-Upstream: $socket_upstream_hash";
+
+		proxy_pass $socket_upstream_hash;
+	}
+
+	location / {
+		set $amplify_host devmazeedfe.mazeed.cloud;
+
+		proxy_http_version 1.1;
+		proxy_read_timeout 600;
+		proxy_ssl_server_name on;
+		proxy_set_header Host $amplify_host;
+		proxy_set_header X-Forwarded-Host $host;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header Connection "";
+
+		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
+
+		proxy_pass https://$amplify_host;
+	}
+	{% else %}
 	location /assets/ {
 		proxy_http_version 1.1;
 
@@ -372,6 +454,7 @@ server {
 		root {{ error_pages_directory }};
 		internal;
 	}
+	{% endif %}
 	{% endif %}
 }
 
