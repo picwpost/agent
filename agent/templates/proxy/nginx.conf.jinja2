@@ -80,7 +80,7 @@ map $host $actual_host {
 	~^(?<site>.+)-backdoor\.{{ domain | replace(".", "\\.") }}$ $site.{{ domain }};
 {% for host in hosts.values() -%}
 	{% for from, to in host.items() if from != 'redirect'%}
-	{% if from != 'codeserver' %}
+	{% if from != 'codeserver' and from != 'default' %}
 	{{ from }} {{ to }};
 	{% endif %}
 	{%- endfor %}
