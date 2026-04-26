@@ -77,7 +77,7 @@ map $actual_host $socket_upstream_hash {
 }
 
 map $host $actual_host {
-	~^(?<site>.+)-frappe\.{{ domain | replace(".", "\\.") }}$ $site.{{ domain }};
+	~^(?<site>.+)-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $site.{{ domain }};
 {% for host in hosts.values() -%}
 	{% for from, to in host.items() if from != 'redirect'%}
 	{% if from != 'codeserver' %}
@@ -89,22 +89,22 @@ map $host $actual_host {
 }
 
 map $host $backend_host_header {
-	~^.+-frappe\.{{ domain | replace(".", "\\.") }}$ $actual_host;
+	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $actual_host;
 	default $host;
 }
 
 map $host $wildcard_frontend_proxy_pass {
-	~^.+-frappe\.{{ domain | replace(".", "\\.") }}$ $upstream_server_hash;
+	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $upstream_server_hash;
 	default https://devmazeedfe.mazeed.cloud;
 }
 
 map $host $wildcard_frontend_host_header {
-	~^.+-frappe\.{{ domain | replace(".", "\\.") }}$ $backend_host_header;
+	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $backend_host_header;
 	default devmazeedfe.mazeed.cloud;
 }
 
 map $host $wildcard_frontend_x_proxy_upstream {
-	~^.+-frappe\.{{ domain | replace(".", "\\.") }}$ $upstream_server_hash;
+	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $upstream_server_hash;
 	default https://devmazeedfe.mazeed.cloud;
 }
 
