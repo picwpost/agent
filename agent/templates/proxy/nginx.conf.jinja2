@@ -77,7 +77,6 @@ map $actual_host $socket_upstream_hash {
 }
 
 map $host $actual_host {
-	~^(?<site>.+)-frappe\.{{ domain | replace(".", "\\.") }}$ $site.{{ domain }};
 	~^(?<site>.+)-backdoor\.{{ domain | replace(".", "\\.") }}$ $site.{{ domain }};
 {% for host in hosts.values() -%}
 	{% for from, to in host.items() if from != 'redirect'%}
@@ -90,13 +89,11 @@ map $host $actual_host {
 }
 
 map $host $is_backdoor_host {
-	~^.+-frappe\.{{ domain | replace(".", "\\.") }}$ 1;
 	~^.+-backdoor\.{{ domain | replace(".", "\\.") }}$ 1;
 	default 0;
 }
 
 map $host $backend_host_header {
-	~^.+-frappe\.{{ domain | replace(".", "\\.") }}$ $actual_host;
 	~^.+-backdoor\.{{ domain | replace(".", "\\.") }}$ $actual_host;
 	default $host;
 }
