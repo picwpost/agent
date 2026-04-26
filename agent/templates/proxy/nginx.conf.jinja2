@@ -88,23 +88,28 @@ map $host $actual_host {
 	default $host;
 }
 
+map $host $is_backdoor_host {
+	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ 1;
+	default 0;
+}
+
 map $host $backend_host_header {
 	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $actual_host;
 	default $host;
 }
 
-map $host $wildcard_frontend_proxy_pass {
-	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $upstream_server_hash;
+map $is_backdoor_host $wildcard_frontend_proxy_pass {
+	1 $upstream_server_hash;
 	default https://devmazeedfe.mazeed.cloud;
 }
 
-map $host $wildcard_frontend_host_header {
-	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $backend_host_header;
+map $is_backdoor_host $wildcard_frontend_host_header {
+	1 $backend_host_header;
 	default devmazeedfe.mazeed.cloud;
 }
 
-map $host $wildcard_frontend_x_proxy_upstream {
-	~^.+-(?:frappe|backdoor)\.{{ domain | replace(".", "\\.") }}$ $upstream_server_hash;
+map $is_backdoor_host $wildcard_frontend_x_proxy_upstream {
+	1 $upstream_server_hash;
 	default https://devmazeedfe.mazeed.cloud;
 }
 
