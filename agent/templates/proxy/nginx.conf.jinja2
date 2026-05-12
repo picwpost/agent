@@ -49,7 +49,7 @@ upstream suspended_saas {
 }
 
 upstream amplify_host {
-	server devmazeedfe.mazeed.cloud;
+	server prod-mazeedfe.mazeed.cloud;
 
 	keepalive 100;
 }
@@ -100,17 +100,17 @@ map $host $backend_host_header {
 
 map $is_backdoor_host $wildcard_frontend_proxy_pass {
 	1 $upstream_server_hash;
-	default https://devmazeedfe.mazeed.cloud;
+	default https://prod-mazeedfe.mazeed.cloud;
 }
 
 map $is_backdoor_host $wildcard_frontend_host_header {
 	1 $backend_host_header;
-	default devmazeedfe.mazeed.cloud;
+	default prod-mazeedfe.mazeed.cloud;
 }
 
 map $is_backdoor_host $wildcard_frontend_x_proxy_upstream {
 	1 $upstream_server_hash;
-	default https://devmazeedfe.mazeed.cloud;
+	default https://prod-mazeedfe.mazeed.cloud;
 }
 
 map $upstream_http_access_control_allow_origin $access_control_allow_origin {
