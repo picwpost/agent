@@ -119,20 +119,6 @@ map $is_backdoor_host $wildcard_frontend_x_proxy_upstream {
 	default https://prod-mazeedfe.mazeed.cloud;
 }
 
-map $host $amplify_dev_frontend_proxy_pass {
-	fe-decoupling-nextjs.mazeed.cloud http://amplify_dev_host;
-	default https://prod-mazeedfe.mazeed.cloud;
-}
-
-map $host $amplify_dev_frontend_host_header {
-	fe-decoupling-nextjs.mazeed.cloud devmazeedfe.mazeed.cloud;
-	default prod-mazeedfe.mazeed.cloud;
-}
-
-map $host $amplify_dev_frontend_x_proxy_upstream {
-	fe-decoupling-nextjs.mazeed.cloud http://amplify_dev_host;
-	default https://prod-mazeedfe.mazeed.cloud;
-}
 
 map $upstream_http_access_control_allow_origin $access_control_allow_origin {
 	default $upstream_http_access_control_allow_origin;
@@ -211,7 +197,6 @@ server {
 		proxy_set_header X-Forwarded-Proto $scheme;
 		proxy_set_header X-Forwarded-Host $host;
 		proxy_set_header Connection "";
-		proxy_redirect ~^https?://devmazeedfe\.mazeed\.cloud(/.*)?$ https://$host$1;
 
 		more_set_headers "X-Proxy-Upstream: $upstream_server_hash";
 		more_set_headers "Access-Control-Allow-Origin: $access_control_allow_origin";
@@ -226,6 +211,7 @@ server {
 
 
 	location /fe_assets/ {
+		set $amplify_host devmazeedfe.mazeed.cloud;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
 
@@ -235,18 +221,17 @@ server {
 		proxy_cache_valid 404 1m;
 		proxy_cache_bypass $http_secret_cache_purge;
 
-		proxy_set_header Host $amplify_dev_frontend_host_header;
+		proxy_set_header Host $amplify_dev_host;
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $remote_addr;
 		proxy_set_header X-Forwarded-Proto $scheme;
 		proxy_set_header X-Forwarded-Host $host;
 		proxy_set_header Connection "";
-		proxy_redirect ~^https?://devmazeedfe\.mazeed\.cloud(/.*)?$ https://$host$1;
 
-		more_set_headers "X-Proxy-Upstream: $amplify_dev_frontend_x_proxy_upstream";
+		more_set_headers "X-Proxy-Upstream: https://$amplify_dev_host";
 		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
 
-		proxy_pass $amplify_dev_frontend_proxy_pass;
+		proxy_pass https://$amplify_dev_host;
 	}
 
 	location /socket.io {
@@ -264,20 +249,21 @@ server {
 	}
 
 	location / {
+		set $amplify_dev_host devmazeedfe.mazeed.cloud;
+
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
 		proxy_ssl_server_name on;
-		proxy_set_header Host $amplify_dev_frontend_host_header;
+		proxy_set_header Host $amplify_host;
 		proxy_set_header X-Forwarded-Host $host;
 		proxy_set_header X-Forwarded-Proto $scheme;
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 		proxy_set_header Connection "";
-		proxy_redirect ~^https?://devmazeedfe\.mazeed\.cloud(/.*)?$ https://$host$1;
 
-		more_set_headers "X-Proxy-Upstream: $amplify_dev_frontend_x_proxy_upstream";
+		more_set_headers "X-Proxy-Upstream: https://$amplify_dev_host";
 
-		proxy_pass $amplify_dev_frontend_proxy_pass;
+		proxy_pass https://$amplify_dev_host;
 	}
 
 	proxy_intercept_errors on;
@@ -287,7 +273,6 @@ server {
 		internal;
 	}
 }
-
 
 {% for host, host_options in hosts.items() %}
 
