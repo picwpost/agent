@@ -84,6 +84,7 @@ map $actual_host $socket_upstream_hash {
 
 map $host $actual_host {
 	~^(?<site>.+)-backdoor\.{{ domain | replace(".", "\\.") }}$ $site.{{ domain }};
+	fe-decoupling-frappe.mazeed.cloud fe-decoupling-nextjs.mazeed.cloud;
 {% for host in hosts.values() -%}
 	{% for from, to in host.items() if from != 'redirect'%}
 	{% if from != 'codeserver' and from != 'default' %}
@@ -101,6 +102,7 @@ map $host $is_backdoor_host {
 
 map $host $backend_host_header {
 	~^.+-backdoor\.{{ domain | replace(".", "\\.") }}$ $actual_host;
+	fe-decoupling-frappe.mazeed.cloud $actual_host;
 	default $host;
 }
 
@@ -118,22 +120,6 @@ map $is_backdoor_host $wildcard_frontend_x_proxy_upstream {
 	1 $upstream_server_hash;
 	default https://prod-mazeedfe.mazeed.cloud;
 }
-
-map $host $amplify_dev_frontend_proxy_pass {
-	fe-decoupling-nextjs.mazeed.cloud http://amplify_dev_host;
-	default https://prod-mazeedfe.mazeed.cloud;
-}
-
-map $host $amplify_dev_frontend_host_header {
-	fe-decoupling-nextjs.mazeed.cloud devmazeedfe.mazeed.cloud;
-	default prod-mazeedfe.mazeed.cloud;
-}
-
-map $host $amplify_dev_frontend_x_proxy_upstream {
-	fe-decoupling-nextjs.mazeed.cloud http://amplify_dev_host;
-	default https://prod-mazeedfe.mazeed.cloud;
-}
-
 
 map $upstream_http_access_control_allow_origin $access_control_allow_origin {
 	default $upstream_http_access_control_allow_origin;
@@ -226,6 +212,7 @@ server {
 
 
 	location /fe_assets/ {
+		set $amplify_host devmazeedfe.mazeed.cloud;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
 
@@ -235,25 +222,17 @@ server {
 		proxy_cache_valid 404 1m;
 		proxy_cache_bypass $http_secret_cache_purge;
 
-		proxy_set_header Host $amplify_dev_frontend_host_header;
+		proxy_set_header Host $amplify_host;
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $remote_addr;
 		proxy_set_header X-Forwarded-Proto $scheme;
 		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Accept-Encoding "";
 		proxy_set_header Connection "";
-		proxy_redirect ~^https?://devmazeedfe\.mazeed\.cloud(/.*)?$ https://$host$1;
-		proxy_cookie_domain devmazeedfe.mazeed.cloud fe-decoupling-nextjs.mazeed.cloud;
-		sub_filter_once off;
-		sub_filter_types text/html application/javascript text/javascript application/json;
-		sub_filter 'https://devmazeedfe.mazeed.cloud' 'https://fe-decoupling-nextjs.mazeed.cloud';
-		sub_filter 'http://devmazeedfe.mazeed.cloud' 'https://fe-decoupling-nextjs.mazeed.cloud';
-		sub_filter 'devmazeedfe.mazeed.cloud' 'fe-decoupling-nextjs.mazeed.cloud';
 
-		more_set_headers "X-Proxy-Upstream: $amplify_dev_frontend_x_proxy_upstream";
+		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
 		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
 
-		proxy_pass $amplify_dev_frontend_proxy_pass;
+		proxy_pass https://$amplify_host;
 	}
 
 	location /socket.io {
@@ -271,27 +250,21 @@ server {
 	}
 
 	location / {
+		set $amplify_host devmazeedfe.mazeed.cloud;
+
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
 		proxy_ssl_server_name on;
-		proxy_set_header Host $amplify_dev_frontend_host_header;
+		proxy_set_header Host $amplify_host;
 		proxy_set_header X-Forwarded-Host $host;
 		proxy_set_header X-Forwarded-Proto $scheme;
 		proxy_set_header X-Real-IP $remote_addr;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-		proxy_set_header Accept-Encoding "";
 		proxy_set_header Connection "";
-		proxy_redirect ~^https?://devmazeedfe\.mazeed\.cloud(/.*)?$ https://$host$1;
-		proxy_cookie_domain devmazeedfe.mazeed.cloud fe-decoupling-nextjs.mazeed.cloud;
-		sub_filter_once off;
-		sub_filter_types text/html application/javascript text/javascript application/json;
-		sub_filter 'https://devmazeedfe.mazeed.cloud' 'https://fe-decoupling-nextjs.mazeed.cloud';
-		sub_filter 'http://devmazeedfe.mazeed.cloud' 'https://fe-decoupling-nextjs.mazeed.cloud';
-		sub_filter 'devmazeedfe.mazeed.cloud' 'fe-decoupling-nextjs.mazeed.cloud';
 
-		more_set_headers "X-Proxy-Upstream: $amplify_dev_frontend_x_proxy_upstream";
+		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
 
-		proxy_pass $amplify_dev_frontend_proxy_pass;
+		proxy_pass https://$amplify_host;
 	}
 
 	proxy_intercept_errors on;
