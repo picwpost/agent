@@ -55,7 +55,7 @@ upstream amplify_host {
 }
 
 upstream amplify_dev_host {
-	server devmazeedfe.mazeed.cloud;
+	server devmazeedfe.mazeed.cloud:443;
 
 	keepalive 100;
 }
@@ -221,6 +221,7 @@ server {
 		set $amplify_host devmazeedfe.mazeed.cloud;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
+		proxy_ssl_name $amplify_host;
 
 		proxy_cache proxy_cache_zone;
 		proxy_cache_key $scheme$host$request_uri;
@@ -238,7 +239,7 @@ server {
 		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
 		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
 
-		proxy_pass https://$amplify_host;
+		proxy_pass https://amplify_dev_host;
 	}
 
 	location /socket.io {
@@ -261,6 +262,7 @@ server {
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
 		proxy_ssl_server_name on;
+		proxy_ssl_name $amplify_host;
 		proxy_set_header Host $amplify_host;
 		proxy_set_header X-Forwarded-Host $host;
 		proxy_set_header X-Forwarded-Proto $scheme;
@@ -270,7 +272,7 @@ server {
 
 		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
 
-		proxy_pass https://$amplify_host;
+		proxy_pass https://amplify_dev_host;
 	}
 
 	proxy_intercept_errors on;
