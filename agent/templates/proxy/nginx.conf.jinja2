@@ -61,7 +61,7 @@ upstream amplify_dev_host {
 }
 
 upstream amplify_enivoing_host {
-	server einvoice-kickoff-2.d3sv5nogsg24zt.amplifyapp.com:443;
+	server einvoice-kickoff.d3sv5nogsg24zt.amplifyapp.com:443;
 
 	keepalive 100;
 }
@@ -350,7 +350,7 @@ server {
 
 
 	location /fe_assets/ {
-		set $amplify_host einvoice-kickoff-2.d3sv5nogsg24zt.amplifyapp.com;
+		set $amplify_host einvoice-kickoff.d3sv5nogsg24zt.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
 		proxy_ssl_name $amplify_host;
@@ -389,7 +389,7 @@ server {
 	}
 
 	location / {
-		set $amplify_host einvoice-kickoff-2.d3sv5nogsg24zt.amplifyapp.com;
+		set $amplify_host einvoice-kickoff.d3sv5nogsg24zt.amplifyapp.com;
 
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
