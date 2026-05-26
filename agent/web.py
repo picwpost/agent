@@ -302,6 +302,29 @@ def pull_docker_images():
     return {"job": job}
 
 
+@application.route("/server/run-release-group-script", methods=["POST"])
+def run_release_group_script():
+    data = request.json
+    if not data:
+        return {"error": "Request body must be JSON"}, 400
+    if not isinstance(data.get("benches"), list) or not data["benches"]:
+        return {"error": "benches must be a non-empty list"}, 400
+    if not all(isinstance(b, str) for b in data["benches"]):
+        return {"error": "benches must be a list of strings"}, 400
+    if not isinstance(data.get("script"), str) or not data["script"]:
+        return {"error": "script must be a non-empty string"}, 400
+    try:
+        timeout = max(1, min(int(data.get("timeout", 300)), 3600))
+    except (TypeError, ValueError):
+        timeout = 300
+    job = Server().run_release_group_script_job(
+        benches=data["benches"],
+        script=data["script"],
+        timeout=timeout,
+    )
+    return {"job": job}
+
+
 @application.route("/nfs/add-to-acl", methods=["POST"])
 def add_to_acl():
     data = request.json

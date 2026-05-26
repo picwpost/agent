@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import tempfile
@@ -1175,6 +1177,98 @@ class Server(Base):
     @step("Ping Step")
     def ping_step(self):
         return {"message": "pong"}
+
+    @job("Run Release Group Script", priority="default")
+    def run_release_group_script_job(self, benches: list[str], script: str, timeout: int = 300):
+        validation = self._validate_release_group_bench_list(benches)
+        all_errors = dict(validation["skipped"])
+        result = self._run_script_on_all_benches(validation["loadable"], script, timeout)
+        all_errors.update(result["errors"])
+        return self._aggregate_csv_results(result["rows"], all_errors)
+
+    _SAFE_SITE_NAME = re.compile(r"^[a-zA-Z0-9._-]+$")
+
+    @step("Validate Bench List")
+    def _validate_release_group_bench_list(self, benches: list[str]) -> dict:
+        loadable = []
+        skipped = {}
+        for bench_name in benches:
+            try:
+                Bench(bench_name, self)
+                loadable.append(bench_name)
+            except Exception as e:
+                skipped[bench_name] = str(e) or "Bench directory not found or invalid"
+        if not loadable:
+            raise AgentException(
+                {"output": f"No loadable benches found. Skipped: {skipped}", "status": "Failure"}
+            )
+        return {"loadable": loadable, "skipped": skipped}
+
+    @step("Run Script on All Benches")
+    def _run_script_on_all_benches(self, bench_names: list[str], script: str, timeout: int) -> dict:
+        all_rows: list[str] = []
+        all_errors: dict = {}
+        for bench_name in bench_names:
+            result = self._run_script_on_bench(bench_name, script, timeout)
+            all_rows.extend(result["rows"])
+            all_errors.update(result["errors"])
+        return {"rows": all_rows, "errors": all_errors}
+
+    def _collect_active_sites(self, bench: Bench) -> tuple[list[str], dict]:
+        active_sites = []
+        errors = {}
+        for name, site in bench.sites.items():
+            if name.startswith("standby"):
+                continue
+            try:
+                if site.config.get("maintenance_mode", 0) == 1:
+                    continue
+            except Exception as e:
+                errors[name] = f"Could not read site config: {e}"
+                continue
+            if self._SAFE_SITE_NAME.match(name):
+                active_sites.append(name)
+            else:
+                errors[name] = "Skipped: unsafe site name"
+        return active_sites, errors
+
+    def _run_script_on_bench(self, bench_name: str, script: str, timeout: int) -> dict:
+        bench = Bench(bench_name, self)
+        active_sites, errors = self._collect_active_sites(bench)
+        rows = []
+        if not active_sites:
+            return {"bench": bench_name, "rows": rows, "errors": errors}
+        script_path = None
+        fd, script_path = tempfile.mkstemp(suffix=".sh", dir="/tmp")
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(script)
+            os.chmod(script_path, 0o700)
+            result = subprocess.run(
+                ["bash", script_path, *active_sites],
+                cwd=bench.directory,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            if result.returncode != 0:
+                errors[bench_name] = result.stderr or f"Exit code {result.returncode}"
+            elif result.stdout:
+                rows = result.stdout.strip().splitlines()
+        except subprocess.TimeoutExpired as e:
+            if e.process:
+                e.process.kill()
+            errors[bench_name] = f"Script timed out after {timeout} seconds"
+        finally:
+            if script_path:
+                os.unlink(script_path)
+        return {"bench": bench_name, "rows": rows, "errors": errors}
+
+    @step("Aggregate CSV")
+    def _aggregate_csv_results(self, all_rows: list[str], all_errors: dict) -> dict:
+        combined = "\n".join(all_rows)
+        encoded = base64.b64encode(combined.encode()).decode()
+        return {"csv": encoded, "row_count": len(all_rows), "error_count": len(all_errors)}
 
     @property
     def wildcards(self) -> list[str]:
