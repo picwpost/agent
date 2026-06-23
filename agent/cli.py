@@ -311,6 +311,17 @@ def stop(bench):
     return Server().stop_all_benches()
 
 
+@bench.command(name="regenerate-nginx")
+def regenerate_nginx():
+    from filelock import FileLock
+
+    server = Server()
+    for _, b in server.benches.items():
+        with FileLock(os.path.join(b.directory, "nginx.config.lock")):
+            b.generate_nginx_config()
+    server._reload_nginx()
+
+
 @cli.command(help="Run iPython console.")
 @click.option(
     "--config-path",
