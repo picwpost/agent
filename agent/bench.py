@@ -510,7 +510,7 @@ class Bench(Base):
             "domain": self.server.config.get("domain"),
             "sites": sites,
             "domains": domains,
-            "http_timeout": self.bench_config["http_timeout"],
+            "http_timeout": self.bench_config.get("http_timeout", 600),
             "web_port": self.bench_config["web_port"],
             "socketio_port": self.bench_config["socketio_port"],
             "sites_directory": self.sites_directory,
@@ -667,7 +667,7 @@ class Bench(Base):
             {
                 "background_workers": self.bench_config["background_workers"],
                 "gunicorn_workers": self.bench_config["gunicorn_workers"],
-                "http_timeout": self.bench_config["http_timeout"],
+                "http_timeout": self.bench_config.get("http_timeout", 600),
                 "name": self.name,
                 "statsd_host": self.bench_config["statsd_host"],
                 "is_ssh_enabled": self.bench_config.get("is_ssh_enabled", False),
