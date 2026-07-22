@@ -576,7 +576,7 @@ server {
 #
 server {
 	listen 443 http2 ssl;
-	server_name stag260226.mazeed.cloud;
+	server_name stag-01.mazeed.cloud;
 
 	ssl_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/*.{{ domain }}/privkey.pem;
