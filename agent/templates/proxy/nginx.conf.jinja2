@@ -84,6 +84,30 @@ upstream amplify_billing_host {
 	keepalive 100;
 }
 
+{% set redirect = namespace(sites=[]) -%}
+{%- for name, upstream in upstreams.items() -%}
+	{%- if upstream["hash"] == "fb68e72ce323b4ad" -%}
+		{%- set redirect.sites = upstream["sites"] -%}
+	{%- endif -%}
+{%- endfor -%}
+
+map $actual_host $is_amplify_dev_redirect_site {
+	default 0;
+	{% for site in redirect.sites -%}
+	{{ site.name }} 1;
+	{% endfor %}
+}
+
+map $is_amplify_dev_redirect_site $frontend_default_proxy_pass {
+	1 https://amplify_dev_host;
+	default https://prod-mazeedfe.mazeed.cloud;
+}
+
+map $is_amplify_dev_redirect_site $frontend_default_host_header {
+	1 devmazeedfe.mazeed.cloud;
+	default prod-mazeedfe.mazeed.cloud;
+}
+
 map $actual_host $upstream_server_hash {
 {% for upstream in upstreams.values() -%}
 	{% for site in upstream["sites"] %}
@@ -132,17 +156,17 @@ map $host $backend_host_header {
 
 map $is_backdoor_host $wildcard_frontend_proxy_pass {
 	1 $upstream_server_hash;
-	default https://prod-mazeedfe.mazeed.cloud;
+	default $frontend_default_proxy_pass;
 }
 
 map $is_backdoor_host $wildcard_frontend_host_header {
 	1 $backend_host_header;
-	default prod-mazeedfe.mazeed.cloud;
+	default $frontend_default_host_header;
 }
 
 map $is_backdoor_host $wildcard_frontend_x_proxy_upstream {
 	1 $upstream_server_hash;
-	default https://prod-mazeedfe.mazeed.cloud;
+	default $frontend_default_proxy_pass;
 }
 
 map $upstream_http_access_control_allow_origin $access_control_allow_origin {
@@ -1173,6 +1197,7 @@ server {
 	location /fe_assets/ {
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
+		proxy_ssl_name $wildcard_frontend_host_header;
 
 		proxy_cache proxy_cache_zone;
 		proxy_cache_key $scheme$host$request_uri;
@@ -1211,6 +1236,7 @@ server {
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
 		proxy_ssl_server_name on;
+		proxy_ssl_name $wildcard_frontend_host_header;
 		proxy_set_header Host $wildcard_frontend_host_header;
 		proxy_set_header X-Forwarded-Host $host;
 		proxy_set_header X-Forwarded-Proto $scheme;
