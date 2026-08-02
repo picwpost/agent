@@ -86,7 +86,7 @@ upstream amplify_billing_host {
 
 {% set redirect = namespace(sites=[]) -%}
 {%- for name, upstream in upstreams.items() -%}
-	{%- if upstream["hash"] == "fb68e72ce323b4ad" -%}
+	{%- if upstream["hash"] == "710d2aa909a4d35b" -%}
 		{%- set redirect.sites = upstream["sites"] -%}
 	{%- endif -%}
 {%- endfor -%}
