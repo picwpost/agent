@@ -2,7 +2,7 @@ map $host $subdomain_map {
     ~^(?<subdomain>[^.]*).*$ $subdomain.{{ domain }};
 }
 
-{% for name, upstream in upstreams.items() %}
+{% for name, upstream in upstream_ips.items() %}
 upstream {{ upstream["hash"] }} {
 	server {{ name }}:80;
 
@@ -18,7 +18,7 @@ upstream {{ upstream["hash"] }} {
 }
 {% endfor %}
 
-{%- for name, upstream in upstreams.items() %}
+{%- for name, upstream in upstream_ips.items() %}
 {%- if upstream["secondaries"]|length > 0 %}
 upstream {{ upstream["hash"] }}_primary {
     server {{ name }}:80;
@@ -84,17 +84,10 @@ upstream amplify_billing_host {
 	keepalive 100;
 }
 
-{% set redirect = namespace(sites=[]) -%}
-{%- for name, upstream in upstreams.items() -%}
-	{%- if upstream["hash"] == "710d2aa909a4d35b" -%}
-		{%- set redirect.sites = upstream["sites"] -%}
-	{%- endif -%}
-{%- endfor -%}
-
 map $actual_host $is_amplify_dev_redirect_site {
 	default 0;
-	{% for site in redirect.sites -%}
-	{{ site.name }} 1;
+	{% for site in amplify_dev_redirect_sites -%}
+	{{ site }} 1;
 	{% endfor %}
 }
 
@@ -109,25 +102,17 @@ map $is_amplify_dev_redirect_site $frontend_default_host_header {
 }
 
 map $actual_host $upstream_server_hash {
-{% for upstream in upstreams.values() -%}
-	{% for site in upstream["sites"] %}
-	{{ site.name }} http://{{ site.upstream }};
-	{%- endfor %}
-{% endfor %}
+	# Per-site entries are included from disk instead of iterated here --
+	# one file per site, written incrementally on each site mutation --
+	# so this map's size (and the cost of rendering/reloading it) no
+	# longer scales with total site count. See Proxy.write_site_map_entry.
+	include {{ upstream_map_directory }}/*.map;
 	default http://site_not_found;
 }
 
 map $actual_host $socket_upstream_hash {
-{%- for upstream in upstreams.values() -%}
-    {%- for site in upstream["sites"] %}
-        {%- if site.is_auto_scaled %}
-            {{ site.name }} http://{{ site.upstream }}_primary;
-        {%- else %}
-            {{ site.name }} http://{{ site.upstream }};
-        {%- endif -%}
-    {%- endfor %}
-{%- endfor %}
-    default http://site_not_found;
+	include {{ socket_map_directory }}/*.map;
+	default http://site_not_found;
 }
 
 map $host $actual_host {

@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import unittest
+from hashlib import sha512 as sha
 from unittest.mock import patch
 
 from agent.proxy import Proxy
@@ -271,3 +272,189 @@ class TestProxy(unittest.TestCase):
         map_file = os.path.join(host_dir, "map.json")
         with open(map_file) as m:
             self.assertDictEqual(json.load(m), {self.domain_1: "yyy.frappe.cloud"})
+
+
+class TestProxySiteMapSharding(unittest.TestCase):
+    """Tests for the sharded per-site $upstream_server_hash/$socket_upstream_hash map files."""
+
+    def setUp(self):
+        self.test_dir = "test_dir_map_sharding"
+        if os.path.exists(self.test_dir):
+            raise FileExistsError(f"Directory {self.test_dir} exists and would be deleted by this test.")
+
+        self.nginx_directory = os.path.join(self.test_dir, "nginx")
+        self.upstreams_directory = os.path.join(self.nginx_directory, "upstreams")
+        os.makedirs(self.upstreams_directory)
+
+        with patch.object(Proxy, "__init__", new=lambda x: None):
+            self.proxy = Proxy()
+        self.proxy.nginx_directory = self.nginx_directory
+        self.proxy.upstreams_directory = self.upstreams_directory
+        self.proxy.upstream_map_directory = os.path.join(self.nginx_directory, "upstream-map.d")
+        self.proxy.socket_map_directory = os.path.join(self.nginx_directory, "socket-map.d")
+        self.proxy.secondary_config_path = os.path.join(self.nginx_directory, "secondaries.json")
+        self.proxy._proxy_config_modification_lock = None
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir)
+
+    def _add_site_file(self, upstream, site, status="active"):
+        upstream_directory = os.path.join(self.upstreams_directory, upstream)
+        os.makedirs(upstream_directory, exist_ok=True)
+        with open(os.path.join(upstream_directory, site), "w") as f:
+            f.write(status)
+
+    def _read_map_entry(self, directory, site):
+        with open(os.path.join(directory, f"{site}.map")) as f:
+            return f.read()
+
+    def test_write_site_map_entry_uses_hashed_upstream_for_active_site(self):
+        self._add_site_file("10.0.0.1", "mysite.frappe.cloud", status="active")
+        self.proxy.write_site_map_entry("10.0.0.1", "mysite.frappe.cloud")
+
+        hashed_upstream = sha(b"10.0.0.1").hexdigest()[:16]
+        entry = self._read_map_entry(self.proxy.upstream_map_directory, "mysite.frappe.cloud")
+        self.assertEqual(entry, f"mysite.frappe.cloud http://{hashed_upstream};\n")
+
+        socket_entry = self._read_map_entry(self.proxy.socket_map_directory, "mysite.frappe.cloud")
+        self.assertEqual(socket_entry, f"mysite.frappe.cloud http://{hashed_upstream};\n")
+
+    def test_write_site_map_entry_uses_status_upstream_for_suspended_site(self):
+        self._add_site_file("10.0.0.1", "mysite.frappe.cloud", status="suspended")
+        self.proxy.write_site_map_entry("10.0.0.1", "mysite.frappe.cloud")
+
+        entry = self._read_map_entry(self.proxy.upstream_map_directory, "mysite.frappe.cloud")
+        self.assertEqual(entry, "mysite.frappe.cloud http://suspended;\n")
+
+    def test_write_site_map_entry_uses_primary_suffix_for_auto_scaled_site(self):
+        self._add_site_file("10.0.0.1", "mysite.frappe.cloud", status="active")
+        os.makedirs(os.path.dirname(self.proxy.secondary_config_path), exist_ok=True)
+        with open(self.proxy.secondary_config_path, "w") as f:
+            json.dump({"10.0.0.1": [{"10.0.0.2": 1}]}, f)
+
+        self.proxy.write_site_map_entry("10.0.0.1", "mysite.frappe.cloud")
+
+        hashed_upstream = sha(b"10.0.0.1").hexdigest()[:16]
+        socket_entry = self._read_map_entry(self.proxy.socket_map_directory, "mysite.frappe.cloud")
+        self.assertEqual(socket_entry, f"mysite.frappe.cloud http://{hashed_upstream}_primary;\n")
+
+        # Non-socket map is unaffected by auto-scaling.
+        entry = self._read_map_entry(self.proxy.upstream_map_directory, "mysite.frappe.cloud")
+        self.assertEqual(entry, f"mysite.frappe.cloud http://{hashed_upstream};\n")
+
+    def test_write_site_map_entry_is_noop_when_site_file_missing(self):
+        self.proxy.write_site_map_entry("10.0.0.1", "ghost.frappe.cloud")
+        self.assertFalse(os.path.exists(self.proxy.upstream_map_directory))
+        self.assertFalse(os.path.exists(self.proxy.socket_map_directory))
+
+    def test_remove_site_map_entry_deletes_both_files(self):
+        self._add_site_file("10.0.0.1", "mysite.frappe.cloud")
+        self.proxy.write_site_map_entry("10.0.0.1", "mysite.frappe.cloud")
+
+        self.proxy.remove_site_map_entry("mysite.frappe.cloud")
+
+        self.assertFalse(
+            os.path.exists(os.path.join(self.proxy.upstream_map_directory, "mysite.frappe.cloud.map"))
+        )
+        self.assertFalse(
+            os.path.exists(os.path.join(self.proxy.socket_map_directory, "mysite.frappe.cloud.map"))
+        )
+
+    def test_remove_site_map_entry_is_noop_when_absent(self):
+        # Should not raise even though nothing was ever written.
+        self.proxy.remove_site_map_entry("never-existed.frappe.cloud")
+
+    def test_add_site_to_upstream_writes_map_entry(self):
+        upstream_directory = os.path.join(self.upstreams_directory, "10.0.0.1")
+        os.makedirs(upstream_directory, exist_ok=True)
+        with patch.object(Proxy, "add_site_to_upstream", new=Proxy.add_site_to_upstream.__wrapped__):
+            self.proxy.add_site_to_upstream("10.0.0.1", "mysite.frappe.cloud")
+
+        hashed_upstream = sha(b"10.0.0.1").hexdigest()[:16]
+        entry = self._read_map_entry(self.proxy.upstream_map_directory, "mysite.frappe.cloud")
+        self.assertEqual(entry, f"mysite.frappe.cloud http://{hashed_upstream};\n")
+
+    def test_update_site_status_rewrites_map_entry(self):
+        self._add_site_file("10.0.0.1", "mysite.frappe.cloud", status="active")
+        self.proxy.write_site_map_entry("10.0.0.1", "mysite.frappe.cloud")
+
+        with patch.object(Proxy, "update_site_status", new=Proxy.update_site_status.__wrapped__):
+            self.proxy.update_site_status("10.0.0.1", "mysite.frappe.cloud", "suspended")
+
+        entry = self._read_map_entry(self.proxy.upstream_map_directory, "mysite.frappe.cloud")
+        self.assertEqual(entry, "mysite.frappe.cloud http://suspended;\n")
+
+    def test_remove_site_from_upstream_removes_map_entry(self):
+        upstream_directory = os.path.join(self.upstreams_directory, "10.0.0.1")
+        self._add_site_file("10.0.0.1", "mysite.frappe.cloud")
+        self.proxy.write_site_map_entry("10.0.0.1", "mysite.frappe.cloud")
+        site_file = os.path.join(upstream_directory, "mysite.frappe.cloud")
+
+        with patch.object(
+            Proxy, "remove_site_from_upstream", new=Proxy.remove_site_from_upstream.__wrapped__
+        ):
+            self.proxy.remove_site_from_upstream(site_file)
+
+        self.assertFalse(
+            os.path.exists(os.path.join(self.proxy.upstream_map_directory, "mysite.frappe.cloud.map"))
+        )
+
+    def test_rewrite_socket_map_entries_for_upstream_updates_all_sites(self):
+        self._add_site_file("10.0.0.1", "site-a.frappe.cloud")
+        self._add_site_file("10.0.0.1", "site-b.frappe.cloud")
+        self.proxy.write_site_map_entry("10.0.0.1", "site-a.frappe.cloud")
+        self.proxy.write_site_map_entry("10.0.0.1", "site-b.frappe.cloud")
+
+        os.makedirs(os.path.dirname(self.proxy.secondary_config_path), exist_ok=True)
+        with open(self.proxy.secondary_config_path, "w") as f:
+            json.dump({"10.0.0.1": [{"10.0.0.2": 1}]}, f)
+
+        self.proxy._rewrite_socket_map_entries_for_upstream("10.0.0.1")
+
+        hashed_upstream = sha(b"10.0.0.1").hexdigest()[:16]
+        for site in ("site-a.frappe.cloud", "site-b.frappe.cloud"):
+            socket_entry = self._read_map_entry(self.proxy.socket_map_directory, site)
+            self.assertEqual(socket_entry, f"{site} http://{hashed_upstream}_primary;\n")
+
+    def test_backfill_site_map_entries_creates_directories_with_zero_sites(self):
+        self.proxy._backfill_site_map_entries()
+        self.assertTrue(os.path.isdir(self.proxy.upstream_map_directory))
+        self.assertTrue(os.path.isdir(self.proxy.socket_map_directory))
+
+    def test_backfill_site_map_entries_covers_every_upstream(self):
+        self._add_site_file("10.0.0.1", "site-a.frappe.cloud")
+        self._add_site_file("10.0.0.2", "site-b.frappe.cloud")
+
+        self.proxy._backfill_site_map_entries()
+
+        self.assertTrue(
+            os.path.exists(os.path.join(self.proxy.upstream_map_directory, "site-a.frappe.cloud.map"))
+        )
+        self.assertTrue(
+            os.path.exists(os.path.join(self.proxy.upstream_map_directory, "site-b.frappe.cloud.map"))
+        )
+
+    def test_upstream_ips_excludes_site_lists(self):
+        self._add_site_file("10.0.0.1", "site-a.frappe.cloud")
+
+        upstream_ips = self.proxy.upstream_ips
+
+        self.assertIn("10.0.0.1", upstream_ips)
+        self.assertNotIn("sites", upstream_ips["10.0.0.1"])
+        self.assertEqual(upstream_ips["10.0.0.1"]["hash"], sha(b"10.0.0.1").hexdigest()[:16])
+
+    def test_amplify_dev_redirect_sites_returns_only_matching_upstream(self):
+        # Finding an IP that actually hashes to the real constant isn't
+        # feasible (sha512 preimage), so patch the constant to match a known
+        # fixture IP's real hash instead of relying on a lucky collision.
+        matching_ip = "10.0.0.1"
+        matching_hash = sha(matching_ip.encode()).hexdigest()[:16]
+        self._add_site_file(matching_ip, "redirect-site.frappe.cloud")
+        self._add_site_file("10.0.0.99", "other-site.frappe.cloud")
+
+        with patch("agent.proxy.AMPLIFY_DEV_REDIRECT_UPSTREAM_HASH", matching_hash):
+            self.assertEqual(self.proxy.amplify_dev_redirect_sites, ["redirect-site.frappe.cloud"])
+
+    def test_amplify_dev_redirect_sites_empty_when_no_match(self):
+        self._add_site_file("10.0.0.99", "other-site.frappe.cloud")
+        self.assertEqual(self.proxy.amplify_dev_redirect_sites, [])
