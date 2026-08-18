@@ -66,8 +66,8 @@ upstream amplify_enivoing_host {
 	keepalive 100;
 }
 
-upstream amplify_epic_assets_host {
-	server epic-assets.d374ow6s921ktb.amplifyapp.com:443;
+upstream amplify_tax_master_settings_host {
+	server feat-tax-master-settings.d374ow6s921ktb.amplifyapp.com:443;
 
 	keepalive 100;
 }
@@ -729,13 +729,13 @@ server {
 
 #
 #
-# amplify_epic_assets_host is used to forward requests to the Amplify UI for the epic assets host, which is running on a different server. This keeps that frontend separate from the main application while preserving the same proxy behavior as fe-decoupling-nextjs.
+# amplify_tax_master_settings_host is used to forward requests to the Amplify UI for the epic assets host, which is running on a different server. This keeps that frontend separate from the main application while preserving the same proxy behavior as fe-decoupling-nextjs.
 #
 #
 #
 server {
 	listen 443 http2 ssl;
-	server_name epic-assets.mazeed.cloud;
+	server_name tax-master-settings.mazeed.cloud;
 
 	ssl_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/*.{{ domain }}/privkey.pem;
@@ -815,7 +815,7 @@ server {
 		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
 		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
 
-		proxy_pass https://amplify_epic_assets_host;
+		proxy_pass https://amplify_tax_master_settings_host;
 	}
 
 	location /socket.io {
@@ -848,7 +848,7 @@ server {
 
 		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
 
-		proxy_pass https://amplify_epic_assets_host;
+		proxy_pass https://amplify_tax_master_settings_host;
 	}
 
 	proxy_intercept_errors on;
