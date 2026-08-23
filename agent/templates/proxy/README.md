@@ -1,79 +1,179 @@
 # Proxy Template Notes
 
-This directory contains the nginx proxy template used to render site-level proxy configuration.
+This directory contains the Nginx proxy template used to render site-level proxy
+configuration for the main proxy host.
 
-## Content Security Policy Updates
+The current source of truth is `nginx.conf.jinja2`.
 
-`nginx.conf.jinja2` sets a `Content-Security-Policy` header with `more_set_headers` in the generated HTTPS server blocks.
+## High-Level Structure
 
-The CSP was updated to support Microsoft Clarity and Flatpickr assets loaded from jsDelivr.
+The template renders:
 
-### Microsoft Clarity
+- upstream blocks for app servers from `upstreams`
+- fixed local upstreams for `site_not_found`, `deactivated`, `suspended`, and
+  `suspended_saas`
+- frontend upstreams:
+  - `amplify_host` -> `prod-mazeedfe.mazeed.cloud`
+  - `amplify_dev_host` -> `devmazeedfe.mazeed.cloud`
+  - `amplify_enivoing_host` -> `einvoice-kickoff.d3sv5nogsg24zt.amplifyapp.com`
+- host/header maps used to split frontend traffic from backend traffic
+- dedicated server blocks for:
+  - `fe-decoupling-nextjs.mazeed.cloud`
+  - `einvoice-kickoff-2.mazeed.cloud`
+- generated server blocks for every host in `hosts`
+- local error servers on `127.0.0.1:10090` to `127.0.0.1:10093`
 
-Clarity was failing with this browser error:
+## Backend Routing Maps
 
-```text
-Refused to connect to 'https://l.clarity.ms/collect' because it violates the following Content Security Policy directive: "connect-src ..."
-```
+The backend routing is built from these maps:
 
-The proxy template now allows Clarity HTTPS subdomains in `connect-src`:
+- `map $actual_host $upstream_server_hash`
+  Selects the backend HTTP upstream for normal app traffic.
+- `map $actual_host $socket_upstream_hash`
+  Selects the websocket upstream. Auto-scaled sites use the `_primary`
+  upstream.
+- `map $host $actual_host`
+  Resolves incoming hostnames to the actual backend site name.
+- `map $host $backend_host_header`
+  Controls which `Host` header is sent to the backend app.
 
-```nginx
-connect-src 'self' ws: wss: https://*.clarity.ms;
-```
+Current special cases in `map $host $actual_host`:
 
-This covers Clarity collection endpoints such as:
+- backdoor hosts: `*-backdoor.<domain>` -> `<site>.<domain>`
+- `fe-decoupling-frappe.mazeed.cloud` -> `fe-decoupling-nextjs.mazeed.cloud`
 
-```text
-https://l.clarity.ms/collect
-```
+Current special cases in `map $host $backend_host_header`:
 
-The wildcard is scoped to `clarity.ms` subdomains instead of allowing all HTTPS connections.
+- backdoor hosts send `Host: $actual_host`
+- `fe-decoupling-frappe.mazeed.cloud` sends `Host: $actual_host`
 
-### Flatpickr
+## Wildcard Frontend Split
 
-Flatpickr was loaded from jsDelivr and failed under both script and stylesheet CSP checks:
+Wildcard frontend behavior is handled only through these maps:
 
-```text
-https://cdn.jsdelivr.net/npm/flatpickr
-https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css
-```
+- `map $is_backdoor_host $wildcard_frontend_proxy_pass`
+- `map $is_backdoor_host $wildcard_frontend_host_header`
+- `map $is_backdoor_host $wildcard_frontend_x_proxy_upstream`
 
-The proxy template now allows jsDelivr for scripts and styles:
+For the wildcard server (`*.{{ domain }}`):
 
-```nginx
-script-src ... https://cdn.jsdelivr.net;
-script-src-elem ... https://cdn.jsdelivr.net;
-style-src ... https://cdn.jsdelivr.net;
-style-src-elem ... https://cdn.jsdelivr.net;
-```
+- backend paths go to the app upstream:
+  - `^/(frappe-api/.*|(api|assets|files|private/files)/)`
+  - `/socket.io`
+- frontend paths go to the frontend target:
+  - `/fe_assets/`
+  - `/`
 
-`script-src-elem` and `style-src-elem` are included explicitly so browsers do not need to fall back to `script-src` and `style-src` when validating external `<script>` and `<link rel="stylesheet">` tags.
+Behavior:
 
-## Frame Policy
+- normal wildcard hosts use the production frontend target
+  `https://prod-mazeedfe.mazeed.cloud`
+- backdoor hosts bypass the frontend target and go directly to the app upstream
 
-The CSP was also updated to include explicit frame rules:
+This wildcard split should be treated as sensitive behavior. Changes to it
+affect every wildcard-routed host.
 
-```nginx
-frame-src 'self' https://*.mazeed.cloud;
-frame-ancestors 'self' https://*.mazeed.cloud;
-```
+## Dedicated `fe-decoupling-nextjs` Host
 
-These directives serve different purposes:
+`fe-decoupling-nextjs.mazeed.cloud` is intentionally defined as a dedicated
+server block before the generated host loop.
 
-- `frame-src` controls which origins this page is allowed to embed in iframes.
-- `frame-ancestors` controls which origins are allowed to embed this page.
+Its current behavior matches the older direct-proxy pattern:
 
-Both are restricted to the same origin plus HTTPS subdomains under `mazeed.cloud`.
+- backend paths go to the normal app upstream:
+  - `^/(frappe-api/.*|(api|assets|files|private/files)/)`
+  - `/socket.io`
+- frontend paths go directly to the dev frontend host:
+  - `/fe_assets/`
+  - `/`
+
+Frontend implementation details:
+
+- sets `amplify_host=devmazeedfe.mazeed.cloud`
+- sends `Host: $amplify_host`
+- proxies with `proxy_pass https://amplify_dev_host`
+
+This host does not use the wildcard frontend maps.
+
+## Dedicated `einvoice-kickoff-2` Host
+
+`einvoice-kickoff-2.mazeed.cloud` is intentionally defined as a dedicated
+server block before the generated host loop.
+
+Its behavior mirrors `fe-decoupling-nextjs.mazeed.cloud`:
+
+- backend paths go to the normal app upstream:
+  - `^/(frappe-api/.*|(api|assets|files|private/files)/)`
+  - `/socket.io`
+- frontend paths go directly to the configured Amplify host:
+  - `/fe_assets/`
+  - `/`
+
+Frontend implementation details:
+
+- sets `amplify_host=einvoice-kickoff.d3sv5nogsg24zt.amplifyapp.com`
+- sends `Host: $amplify_host`
+- proxies with `proxy_pass https://amplify_enivoing_host`
+
+This host does not use the wildcard frontend maps.
+
+## Generated Host Server Blocks
+
+For hosts rendered from `hosts`:
+
+- every HTTPS server block gets the shared security headers and CSP
+- certificates are resolved from `nginx_directory/hosts/<cert_host>/`
+- wildcard certificate reuse is handled through `wildcards`
+- redirect-only hosts return `301`
+
+For the wildcard generated host (`*.{{ domain }}`):
+
+- backend and frontend traffic are split as described above
+
+For non-wildcard generated hosts:
+
+- `/assets/` is proxied to the backend upstream with cache enabled
+- `/socket.io` is proxied to the socket upstream
+- `/` is proxied to the backend upstream
+
+If `host_options.codeserver` is enabled, the `/` location upgrades the
+connection and keeps websocket-style headers.
+
+## Shared Headers and CSP
+
+All HTTPS server blocks in this template set:
+
+- `X-Frame-Options: SAMEORIGIN`
+- `X-XSS-Protection: 1; mode=block`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: no-referrer-when-downgrade`
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+
+The current CSP allows:
+
+- Microsoft Clarity:
+  - `https://www.clarity.ms`
+  - `https://scripts.clarity.ms`
+  - `connect-src ... https://*.clarity.ms`
+- jsDelivr for scripts and styles:
+  - `https://cdn.jsdelivr.net`
+- Mazeed framing rules:
+  - `frame-src 'self' https://*.mazeed.cloud`
+  - `frame-ancestors 'self' https://*.mazeed.cloud`
 
 ## Deployment Note
 
-Changing this template does not update live response headers by itself. The nginx config must be regenerated from `nginx.conf.jinja2`, deployed to the proxy host, and nginx must be reloaded.
+Updating `nginx.conf.jinja2` does not affect live traffic by itself.
 
-If the browser still reports a CSP like this after deployment:
+The generated proxy config must be rebuilt and Nginx must be reloaded on the
+proxy host. Typical validation flow:
 
-```text
-style-src 'self' 'unsafe-inline'
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-then the live response is not using the updated generated nginx config, or another upstream layer is also setting a `Content-Security-Policy` header.
+When debugging behavior, confirm both:
+
+- the generated config matches the template changes
+- the final response headers include the expected `X-Proxy-Upstream` value

@@ -1,0 +1,99 @@
+If one IP can hit your API 1000 times before you react, the limit is too loose.
+
+  Best practice is layered:
+
+  1. Don’t rely on IP only.
+     Use at least:
+
+  - per IP
+  - per account / username / email
+  - per API key / session
+  - per endpoint
+
+  IP-only blocking is weak because of NAT, VPNs, proxies, and distributed attacks.
+
+  2. Treat login/auth endpoints much more strictly than normal API calls.
+     Good starting points:
+
+  - /login, /auth, /forgot-password, OTP verify:
+      - 5 to 10 attempts per account per 10 to 15 minutes
+      - 20 to 30 attempts per IP per 5 to 10 minutes
+      - then add delay, CAPTCHA/challenge, or temporary lock
+  - normal authenticated API:
+      - rate-limit by API key/user and IP
+      - example starting point: 5 r/s with a small burst for ordinary reads
+      - much lower for expensive endpoints
+
+  3. Use progressive controls, not just a hard ban.
+     Recommended flow:
+
+  - small excess: return 429
+  - repeated abuse: add delay/backoff
+  - continued abuse: temporary block for 15 to 60 minutes
+  - extreme abuse: WAF/CDN firewall rule or denylist
+
+  4. Make brute force harder at the app layer.
+     For auth endpoints:
+
+  - generic error messages
+  - MFA for admins/sensitive users
+  - password hashing done correctly
+  - no username enumeration
+  - device/risk checks if possible
+
+  5. Log and alert aggressively.
+     Alert on:
+
+  - many failures from one IP
+  - one account attacked from many IPs
+  - many usernames from one IP
+  - spikes on auth endpoints
+  - 429 surge
+
+  6. Limit concurrency too, not only request rate.
+     For abuse and DoS protection, use both:
+
+  - request rate limiting
+  - connection limiting
+
+  For nginx, that means:
+
+  - limit_req for request rate
+  - limit_conn for concurrent requests/connections
+
+  7. Put this in front of nginx too if possible.
+     Best stack:
+
+  - CDN/WAF first
+  - nginx rate limiting second
+  - app-level account throttling third
+
+  So the practical answer to your example is:
+
+  - do not wait for 1000 requests from one IP
+  - for login endpoints, start throttling after single-digit or low double-digit failures
+  - for general API, start rate limiting much earlier and return 429
+  - combine IP + account + endpoint limits
+
+  For your nginx-based setup, my recommendation would be:
+
+  - limit_req on /api/method/login, OTP, password reset, token endpoints
+  - stricter zone for auth endpoints
+  - broader but looser zone for normal API
+  - limit_conn for abusive concurrency
+  - app-side failed-login counter per account
+
+  Sources:
+
+  - OWASP brute force guidance: https://owasp.org/index.php/Blocking_Brute_Force_Attacks
+  - OWASP API rate limiting risk: https://owasp.org/API-Security/editions/2019/en/0xa4-lack-of-resources-and-rate-limiting/
+  - NIST on throttling as primary defense: https://pages.nist.gov/800-63-3-Implementation-Resources/63B/Authenticators/
+  - NGINX limit_req: https://nginx.org/r/limit_req_zone
+  - NGINX limit_conn: https://nginx.org/en/docs/http/ngx_http_limit_conn_module.html
+
+  If you want, I can turn this into a concrete nginx policy for your current template with exact limits for:
+
+  - login endpoints
+  - normal API
+  - print/PDF endpoints
+  - socket endpoints
