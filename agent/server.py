@@ -28,6 +28,7 @@ from agent.base import AgentException, Base
 from agent.bench import Bench
 from agent.exceptions import BenchNotExistsException, RegistryDownException
 from agent.job import Job, Step, job, step
+from agent.job_purge import WAIT_TIMEOUT_AFTER_PURGE, WAIT_TIMEOUT_WITHOUT_PURGE
 from agent.nfs_handler import NFSHandler
 from agent.patch_handler import run_patches
 from agent.site import Site
@@ -321,6 +322,53 @@ class Server(Base):
         for _, bench in self.benches.items():
             bench.docker_execute("supervisorctl start frappe-bench-web: frappe-bench-workers:", as_root=True)
 
+    @property
+    def burst_worker_count(self):
+        """How many on-demand workers this server is configured to burst to.
+
+        Defaults rather than requiring config.json to be rewritten, so servers
+        provisioned before burst workers existed pick them up on their next
+        agent update without an Ansible run.
+        """
+        return int(self.config.get("burst_workers", 4))
+
+    def _burst_worker_names(self):
+        return " ".join(f"agent:burst_worker-{index}" for index in range(self.burst_worker_count))
+
+    @job("Start Burst Workers", priority="high")
+    def start_burst_workers(self):
+        self._start_burst_workers()
+
+    @step("Start Burst Workers")
+    def _start_burst_workers(self):
+        """Add worker capacity for a deploy window.
+
+        Deliberately does not reread/update supervisor first. `supervisorctl
+        update` restarts every program whose config changed, which on a server
+        with a stale supervisor.conf would bounce the main workers and take
+        in-flight site updates with them -- the exact thing a separate
+        burst_worker program exists to avoid. If the program is missing this
+        fails loudly instead, and an agent update installs it.
+        """
+        return self.execute(f"sudo supervisorctl start {self._burst_worker_names()}")
+
+    @job("Stop Burst Workers", priority="high")
+    def stop_burst_workers(self):
+        self._stop_burst_workers()
+
+    @step("Stop Burst Workers")
+    def _stop_burst_workers(self):
+        """Give the capacity back once the deploy window closes.
+
+        Blocks until each worker finishes whatever it is running -- the point
+        of stopwaitsecs=1500 is that a site migration is never interrupted to
+        scale back down. In the normal case the rollout is already drained and
+        these are idle, so this returns at once.
+        """
+        return self.execute(
+            f"sudo supervisorctl stop {self._burst_worker_names()}", non_zero_throw=False
+        )
+
     @job("Force Remove All Benches")
     def force_remove_all_benches(self):
         self._force_remove_all_benches()
@@ -439,13 +487,21 @@ class Server(Base):
 
         self.execute(f"mv {bench_directory} {self.archived_directory}")
 
-    @job("Update Site Pull", priority="low")
+    # `default`, not `low`: the low queue is drained last by `rq worker high
+    # default low` and carries every long job on the box -- New Bench
+    # docker pulls, Backup Site, Physical Backup Database, Archive Bench,
+    # Cleanup Unused Files. A site update queued behind two of those waits for
+    # them to finish, which is the whole gap between a site going Pending and
+    # going Updating. Sharing `default` with short jobs costs nothing by
+    # comparison, and needs no worker restart to take effect.
+    @job("Update Site Pull", priority="default")
     def update_site_pull_job(self, name, source, target, activate):
         source = Bench(source, self)
         site = Site(name, source)
 
         site.enable_maintenance_mode()
-        site.wait_till_ready()
+        purged = site.purge_pending_jobs_if_possible()
+        site.wait_till_ready(WAIT_TIMEOUT_AFTER_PURGE if purged else WAIT_TIMEOUT_WITHOUT_PURGE)
 
         target = Bench(target, self)
         self.move_site(site, target)
@@ -460,7 +516,7 @@ class Server(Base):
         if activate:
             site.disable_maintenance_mode()
 
-    @job("Update Site Migrate", priority="low")
+    @job("Update Site Migrate", priority="default")
     def update_site_migrate_job(
         self,
         name,
@@ -479,7 +535,8 @@ class Server(Base):
         site = Site(name, source)
 
         site.enable_maintenance_mode()
-        site.wait_till_ready()
+        purged = site.purge_pending_jobs_if_possible()
+        site.wait_till_ready(WAIT_TIMEOUT_AFTER_PURGE if purged else WAIT_TIMEOUT_WITHOUT_PURGE)
 
         if not skip_backups:
             site.clear_backup_directory()
@@ -1106,8 +1163,9 @@ class Server(Base):
         data = {
             "web_port": self.config["web_port"],
             "redis_port": self.config["redis_port"],
-            "gunicorn_workers": self.config.get("gunicorn_workers", 2),
+            "gunicorn_workers": self.config.get("gunicorn_workers", 4),
             "workers": self.config["workers"],
+            "burst_workers": self.burst_worker_count,
             "directory": self.directory,
             "user": self.config["user"],
             "sentry_dsn": self.config.get("sentry_dsn"),

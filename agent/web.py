@@ -246,6 +246,18 @@ def start_bench_workers():
     return {"job": job}
 
 
+@application.route("/server/start-burst-workers", methods=["POST"])
+def start_burst_workers():
+    job = Server().start_burst_workers()
+    return {"job": job}
+
+
+@application.route("/server/stop-burst-workers", methods=["POST"])
+def stop_burst_workers():
+    job = Server().stop_burst_workers()
+    return {"job": job}
+
+
 @application.route("/server/force-remove-all-benches", methods=["POST"])
 def force_remove_all_benches():
     job = Server().force_remove_all_benches()

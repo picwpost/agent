@@ -31,6 +31,27 @@ stderr_logfile={{ directory }}/logs/worker.error.log
 user={{ user }}
 directory={{ directory }}
 
+# Extra capacity for deploy windows, started and stopped on demand by
+# /server/start-burst-workers and /server/stop-burst-workers. A SEPARATE
+# program from `worker` on purpose: raising numprocs on `worker` would make
+# `supervisorctl update` stop and restart the whole group, and with
+# stopwaitsecs=1500 and RQ's warm shutdown that either blocks the scale-up for
+# 25 minutes or interrupts a migration already in flight. autostart=false so a
+# server that has this config but was never asked to burst runs nothing extra.
+[program:burst_worker]
+command=bash -c "{{ directory }}/repo/wait-for-it.sh redis://127.0.0.1:{{ redis_port }} && exec {{ directory }}/env/bin/rq worker {% if sentry_dsn %}--sentry-dsn '{{ sentry_dsn }}'{% endif %} --url redis://127.0.0.1:{{ redis_port }} default low"
+environment=PYTHONUNBUFFERED=1
+autostart=false
+autorestart=true
+stopwaitsecs=1500
+killasgroup=true
+numprocs={{ burst_workers }}
+process_name=%(program_name)s-%(process_num)d
+stdout_logfile={{ directory }}/logs/burst_worker.log
+stderr_logfile={{ directory }}/logs/burst_worker.error.log
+user={{ user }}
+directory={{ directory }}
+
 {% if is_proxy_server or is_standalone %}
 [program:nginx_reload_manager]
 command=bash -c "{{ directory }}/repo/wait-for-it.sh redis://127.0.0.1:{{ redis_port }} && exec {{directory}}/env/bin/python {{ directory }}/repo/agent/nginx_reload_manager.py"
@@ -58,7 +79,7 @@ directory={{ directory }}
 
 [group:agent]
 
-{% set programs = "web, redis, worker" %}
+{% set programs = "web, redis, worker, burst_worker" %}
 
 {% if is_proxy_server or is_standalone %}
     {% set programs = programs + ", nginx_reload_manager" %}

@@ -83,7 +83,15 @@ def config(name, user, workers, proxy_ip=None, sentry_dsn=None, press_url=None):
         "redis_port": 25025,
         "user": user,
         "workers": workers,
-        "gunicorn_workers": 2,
+        # On-demand deploy capacity. The program is autostart=false, so this is
+        # a ceiling that costs nothing until a rollout asks for it.
+        "burst_workers": 4,
+        # Press polls /jobs/<up to 100 ids> on this server every 5 seconds, and
+        # that endpoint serialises each job with all of its steps plus a Redis
+        # LRANGE per step for command output. On 2 workers a single slow poll
+        # blocks delivery of new jobs, which trips Agent Request Failure and
+        # takes every queued job for the server with it.
+        "gunicorn_workers": 4,
         "web_port": 25052,
         "press_url": "https://frappecloud.com",
     }
