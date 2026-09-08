@@ -897,7 +897,8 @@ def clear_site_cache(bench, site):
 )
 @validate_bench_and_site
 def activate_site(bench, site):
-    job = Server().activate_site_job(site, bench)
+    data = request.json or {}
+    job = Server().activate_site_job(site, bench, build_search_index=data.get("build_search_index", True))
     return {"job": job}
 
 
@@ -926,6 +927,9 @@ def update_site_migrate(bench, site):
         data.get("skip_backups", False),
         data.get("before_migrate_scripts", {}),
         data.get("skip_search_index", True),
+        # Defaults to True so an older Press that never sends this key keeps
+        # the existing behaviour rather than silently losing the index.
+        data.get("build_search_index", True),
     )
     return {"job": job}
 
