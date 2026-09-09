@@ -662,6 +662,16 @@ class Site(Base):
 
     @step("Build Search Index")
     def build_search_index(self):
+        """Rebuild the *website* full-text index (Whoosh, `web_routes`).
+
+        Not a database index and nothing to do with desk global search, the
+        awesome bar or link lookups. It renders every public route in every
+        installed app -- a full server-side page render each, serially -- so on
+        a site with no public portal it is minutes of work nothing ever reads.
+        Callers gate it with build_search_index; a site that never builds it
+        degrades to zero portal-search results, never an error, because
+        FullTextSearch.get_index() creates an empty index on demand.
+        """
         return self.bench_execute("build-search-index")
 
     @job("Clear Cache")

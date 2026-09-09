@@ -527,6 +527,7 @@ class Server(Base):
         skip_backups,
         before_migrate_scripts: dict[str, str] | None = None,
         skip_search_index: bool = True,
+        build_search_index: bool = True,
     ):
         if before_migrate_scripts is None:
             before_migrate_scripts = {}
@@ -570,10 +571,11 @@ class Server(Base):
         if activate:
             site.disable_maintenance_mode()
 
-        with suppress(Exception):
-            # Don't fail job on failure
-            # v12 does not have build_search_index command
-            site.build_search_index()
+        if build_search_index:
+            with suppress(Exception):
+                # Don't fail job on failure
+                # v12 does not have build_search_index command
+                site.build_search_index()
 
     @job("Deactivate Site", priority="high")
     def deactivate_site_job(self, name, bench):
@@ -584,15 +586,16 @@ class Server(Base):
         site.wait_till_ready()
 
     @job("Activate Site", priority="high")
-    def activate_site_job(self, name, bench):
+    def activate_site_job(self, name, bench, build_search_index: bool = True):
         source = Bench(bench, self)
         site = Site(name, source)
 
         site.disable_maintenance_mode()
-        with suppress(Exception):
-            # Don't fail job on failure
-            # v12 does not have build_search_index command
-            site.build_search_index()
+        if build_search_index:
+            with suppress(Exception):
+                # Don't fail job on failure
+                # v12 does not have build_search_index command
+                site.build_search_index()
 
     @job("Recover Failed Site Migrate", priority="high")
     def update_site_recover_migrate_job(
