@@ -103,7 +103,7 @@ upstream amplify_ps_15_si_creation_host {
 }
 
 upstream amplify_ops_host {
-	server development.d1odb1w2iy4wg8.amplifyapp.com:443;
+	server ops-development.d374ow6s921ktb.amplifyapp.com:443;
 
 	keepalive 100;
 }
@@ -2020,7 +2020,7 @@ server {
 
 
 	location /fe_assets/ {
-		set $amplify_host development.d1odb1w2iy4wg8.amplifyapp.com;
+		set $amplify_host ops-development.d374ow6s921ktb.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
 		proxy_ssl_name $amplify_host;
@@ -2059,7 +2059,7 @@ server {
 	}
 
 	location / {
-		set $amplify_host development.d1odb1w2iy4wg8.amplifyapp.com;
+		set $amplify_host ops-development.d374ow6s921ktb.amplifyapp.com;
 
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
@@ -2153,7 +2153,7 @@ server {
 
 
 	location /fe_assets/ {
-		set $amplify_host development.d1odb1w2iy4wg8.amplifyapp.com;
+		set $amplify_host ops-development.d374ow6s921ktb.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
 		proxy_ssl_name $amplify_host;
@@ -2192,7 +2192,7 @@ server {
 	}
 
 	location / {
-		set $amplify_host development.d1odb1w2iy4wg8.amplifyapp.com;
+		set $amplify_host ops-development.d374ow6s921ktb.amplifyapp.com;
 
 		proxy_http_version 1.1;
 		proxy_read_timeout 600;
