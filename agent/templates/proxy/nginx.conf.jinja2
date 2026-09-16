@@ -1961,7 +1961,7 @@ server {
 #
 server {
 	listen 443 http2 ssl;
-	server_name ops-1.mazeed.cloud;
+	server_name workspace-00002992.mazeed.cloud;
 
 	ssl_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/*.{{ domain }}/privkey.pem;
@@ -2094,7 +2094,7 @@ server {
 #
 server {
 	listen 443 http2 ssl;
-	server_name ops-2.mazeed.cloud;
+	server_name workspace-00002995.mazeed.cloud;
 
 	ssl_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/*.{{ domain }}/privkey.pem;
