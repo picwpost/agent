@@ -352,31 +352,6 @@ server {
 		proxy_pass https://amplify_dev_host;
 	}
 
-	location /_next/static/icons/ {
-		set $amplify_host devmazeedfe.mazeed.cloud;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_dev_host;
-	}
-
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -506,31 +481,6 @@ server {
 	}
 
 	location /icons/ {
-		set $amplify_host devmazeedfe.mazeed.cloud;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_dev_host;
-	}
-
-	location /_next/static/icons/ {
 		set $amplify_host devmazeedfe.mazeed.cloud;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
@@ -712,31 +662,6 @@ server {
 		proxy_pass https://amplify_enivoing_host;
 	}
 
-	location /_next/static/icons/ {
-		set $amplify_host einvoice-kickoff.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_enivoing_host;
-	}
-
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -870,31 +795,6 @@ server {
 	}
 
 	location /icons/ {
-		set $amplify_host einvoice-kickoff.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_enivoing_host;
-	}
-
-	location /_next/static/icons/ {
 		set $amplify_host einvoice-kickoff.d374ow6s921ktb.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
@@ -1077,31 +977,6 @@ server {
 		proxy_pass https://amplify_enivoing_host;
 	}
 
-	location /_next/static/icons/ {
-		set $amplify_host einvoice-kickoff.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_enivoing_host;
-	}
-
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -1236,31 +1111,6 @@ server {
 	}
 
 	location /icons/ {
-		set $amplify_host einvoice-kickoff.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_enivoing_host;
-	}
-
-	location /_next/static/icons/ {
 		set $amplify_host einvoice-kickoff.d374ow6s921ktb.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
@@ -1443,31 +1293,6 @@ server {
 		proxy_pass https://amplify_enivoing_host;
 	}
 
-	location /_next/static/icons/ {
-		set $amplify_host einvoice-kickoff.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_enivoing_host;
-	}
-
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -1602,31 +1427,6 @@ server {
 	}
 
 	location /icons/ {
-		set $amplify_host feat-tax-master-settings.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_tax_master_settings_host;
-	}
-
-	location /_next/static/icons/ {
 		set $amplify_host feat-tax-master-settings.d374ow6s921ktb.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
@@ -1808,31 +1608,6 @@ server {
 		proxy_pass https://amplify_stag260226_host;
 	}
 
-	location /_next/static/icons/ {
-		set $amplify_host staging.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_stag260226_host;
-	}
-
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -1966,31 +1741,6 @@ server {
 	}
 
 	location /icons/ {
-		set $amplify_host billing.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_billing_host;
-	}
-
-	location /_next/static/icons/ {
 		set $amplify_host billing.d374ow6s921ktb.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
@@ -2172,31 +1922,6 @@ server {
 		proxy_pass https://amplify_responsive_host;
 	}
 
-	location /_next/static/icons/ {
-		set $amplify_host responsive.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_responsive_host;
-	}
-
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -2354,31 +2079,6 @@ server {
 		proxy_pass https://amplify_design_system_host;
 	}
 
-	location /_next/static/icons/ {
-		set $amplify_host feat-handle-system-design.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_design_system_host;
-	}
-
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -2512,31 +2212,6 @@ server {
 	}
 
 	location /icons/ {
-		set $amplify_host ps-15-si-creation-uiux.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_ps_15_si_creation_host;
-	}
-
-	location /_next/static/icons/ {
 		set $amplify_host ps-15-si-creation-uiux.d374ow6s921ktb.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
@@ -2719,31 +2394,6 @@ server {
 		proxy_pass https://amplify_ops_host;
 	}
 
-	location /_next/static/icons/ {
-		set $amplify_host ops-development.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_ops_host;
-	}
-
 	location /socket.io {
 		proxy_http_version 1.1;
 		proxy_set_header Upgrade $http_upgrade;
@@ -2878,31 +2528,6 @@ server {
 	}
 
 	location /icons/ {
-		set $amplify_host ops-development.d374ow6s921ktb.amplifyapp.com;
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $amplify_host;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $amplify_host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: https://$amplify_host";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass https://amplify_ops_host;
-	}
-
-	location /_next/static/icons/ {
 		set $amplify_host ops-development.d374ow6s921ktb.amplifyapp.com;
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
@@ -3075,30 +2700,6 @@ server {
 	}
 
 	location /icons/ {
-		proxy_http_version 1.1;
-		proxy_ssl_server_name on;
-		proxy_ssl_name $wildcard_frontend_host_header;
-
-		proxy_cache proxy_cache_zone;
-		proxy_cache_key $scheme$host$request_uri;
-		proxy_cache_valid 200 302 2m;
-		proxy_cache_valid 404 1m;
-		proxy_cache_bypass $http_secret_cache_purge;
-
-		proxy_set_header Host $wildcard_frontend_host_header;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $remote_addr;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header X-Forwarded-Host $host;
-		proxy_set_header Connection "";
-
-		more_set_headers "X-Proxy-Upstream: $wildcard_frontend_x_proxy_upstream";
-		more_set_headers "X-Proxy-Cache: $upstream_cache_status";
-
-		proxy_pass $wildcard_frontend_proxy_pass;
-	}
-
-	location /_next/static/icons/ {
 		proxy_http_version 1.1;
 		proxy_ssl_server_name on;
 		proxy_ssl_name $wildcard_frontend_host_header;
