@@ -3414,13 +3414,13 @@ server {
 
 #
 #
-# amplify_payment_links_host is used to forward requests to the Amplify UI for the payment links host (payment-links-003, sharing the payment-links-001 upstream), which is running on a different server. This keeps that frontend separate from the main application while preserving the same proxy behavior as fe-decoupling-nextjs.
+# amplify_payment_links_host is used to forward requests to the Amplify UI for the payment links host (paymentlink-003, sharing the payment-links-001 upstream), which is running on a different server. This keeps that frontend separate from the main application while preserving the same proxy behavior as fe-decoupling-nextjs.
 #
 #
 #
 server {
 	listen 443 http2 ssl;
-	server_name payment-links-003.mazeed.cloud;
+	server_name paymentlink-003.mazeed.cloud;
 
 	ssl_certificate {{ nginx_directory }}/hosts/*.{{ domain }}/fullchain.pem;
 	ssl_certificate_key {{ nginx_directory }}/hosts/*.{{ domain }}/privkey.pem;
